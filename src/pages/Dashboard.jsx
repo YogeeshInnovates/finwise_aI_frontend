@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { formatDateTime, formatMoney } from "../lib/format";
@@ -9,13 +9,38 @@ const COLORS = ["#0ea5e9","#22c55e","#f59e0b","#ef4444","#8b5cf6","#14b8a6"];
 export default function Dashboard(){
   const navigate = useNavigate();
   const [data,setData]=useState(null);
-  useEffect(()=>{ (async()=>{ try{ const st=await api("/profile/status"); if(!st.onboarded) navigate("/onboarding"); }catch{} })(); },[navigate]);
-  useEffect(()=>{ const h=()=>{ api("/dashboard").then(setData); api("/transactions?days=30").then(setTxns); }; window.addEventListener("finwise:refresh",h); return ()=>window.removeEventListener("finwise:refresh",h); },[]);
   const [txns,setTxns]=useState([]);
-  useEffect(()=>{
-    api("/dashboard").then(setData).catch(console.error);
-    api("/transactions?days=30").then(setTxns).catch(()=>setTxns([]));
+  const [error,setError]=useState("");
+
+  const load = useCallback(()=>{
+    Promise.all([api("/dashboard"), api("/transactions?days=30")])
+      .then(([dashboard, transactions])=>{
+        setData(dashboard);
+        setTxns(transactions || []);
+        setError("");
+      })
+      .catch(err=>setError(err.message || "Could not load dashboard"));
   },[]);
+
+  const retry = ()=>{
+    setError("");
+    load();
+  };
+
+  useEffect(()=>{ (async()=>{ try{ const st=await api("/profile/status"); if(!st.onboarded) navigate("/onboarding"); }catch{} })(); },[navigate]);
+  useEffect(()=>{
+    load();
+    const h = ()=>load();
+    window.addEventListener("finwise:refresh",h);
+    return ()=>window.removeEventListener("finwise:refresh",h);
+  },[load]);
+
+  if(error) return (
+    <div className="dash-loading">
+      <p>{error}</p>
+      <button type="button" onClick={retry}>Retry</button>
+    </div>
+  );
   if(!data) return <div className="dash-loading">Loading dashboard…</div>;
 
   const f = data.flexible || {};
@@ -30,13 +55,12 @@ export default function Dashboard(){
 
   return (
     <div className="dash">
-      <main style={{width:"100%"}}>
+      <div className="dash-inner">
         <header className="dash-header">
           <div>
             <h1>Financial Overview</h1>
             <p>Your money at a glance</p>
           </div>
-          <button className="dash-logout" onClick={()=>{localStorage.removeItem("access_token");window.location.href="/login";}}>Logout</button>
         </header>
 
         <section className="dash-cards">
@@ -109,7 +133,7 @@ export default function Dashboard(){
             </ul>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
-.dash{width:100%;}
+.dash,.dash-inner{width:100%;}
 .dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.dash-grid>*{min-width:0;}
 .dash-header h1{margin:0;font-size:28px;color:#fff;}
 .dash-header p{margin:4px 0 0;color:var(--muted);}
 .dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;margin-bottom:24px;}

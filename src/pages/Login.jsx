@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { auth, setToken } from "../lib/api";
 
-export default function Login({ onAuth }){
+export default function Login(){
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [name,setName]=useState("");
@@ -19,7 +19,7 @@ export default function Login({ onAuth }){
       const r = mode==="login"
         ? await auth.login({email,password})
         : await auth.register({email,password,full_name:name||null});
-      setToken(r.access_token);
+      setToken(r.access_token, r.refresh_token);
       window.location.href = "/";
     }catch(e){
       let msg = e.message;
